@@ -22,3 +22,27 @@ export function logout() {
     method: 'get'
   })
 }
+
+export function userList(userDto) {
+  return request({
+    url: '/user/list',
+    method: 'get',
+    params: { userDto }
+  })
+}
+
+export function updateUser(userDto) {
+  return request({
+    url: '/user/list',
+    method: 'get',
+    params: { userDto }
+  })
+}
+
+export function createUser(userDto) {
+  return request({
+    url: '/user/list',
+    method: 'get',
+    params: { userDto }
+  })
+}

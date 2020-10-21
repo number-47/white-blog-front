@@ -46,7 +46,6 @@ const actions = {
           menu = handlerMenus(data)
           // 存在vueX中
           commit('SET_ROUTES', menu)
-          console.log(JSON.stringify(menu))
           resolve(menu)
         })
         .catch((error) => {
