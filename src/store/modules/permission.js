@@ -1,30 +1,27 @@
-import { asyncRoutes, constantRoutes } from '@/router'
-/**
- * 通过meta.data确认当前用户是否有权限
- * @param {*} roles
- * @param {*} route
- */
-function hasPermission(roles, route) {
-  if (route.meta && route.meta.roles) {
-    // 如果有一个元素满足条件，则立即返回true，没有满足条件的元素返回false
-    return roles.some(role => route.meta.roles.includes(role))
-  } else {
-    return false
-  }
-}
+import { constantRoutes } from '@/router'
+import { getMenu } from '@/api/menus'
 
-export function filterAsybcRoutes(routes, roles) {
-  const res = []
-  routes.forEach(route => {
-    const tmp = { ...route }
-    if (hasPermission(roles, tmp)) {
-      if (tmp.children) {
-        tmp.children = filterAsybcRoutes(tmp.children, roles)
+function handlerMenus(menus) {
+  return menus.filter((menus) => {
+    const component = menus.component
+    if (component) {
+      if (menus.component === 'Layout') {
+        menus.component = resolve => { require(['@/layout/index'], resolve) }
+      } else {
+        menus.component = view(menus.component)
       }
-      res.push(tmp)
+      if (menus.children && menus.children.length) {
+        menus.children = handlerMenus(menus.children)
+      }
+      return true
     }
   })
-  return res
+}
+
+function view(componentPath) {
+  return resolve => {
+    require(['@/views/' + componentPath], resolve)
+  }
 }
 
 const state = {
@@ -40,17 +37,21 @@ const mutations = {
 }
 
 const actions = {
-  generateRoutes({ commit }, roles) {
-    return new Promise(resolve => {
-      let accessedRoutes
-      // 管理员可以访问所有
-      if (roles.includes('admin')) {
-        accessedRoutes = asyncRoutes || []
-      } else {
-        accessedRoutes = filterAsybcRoutes(asyncRoutes, roles)
-      }
-      commit('SET_ROUTES', accessedRoutes)
-      resolve(accessedRoutes)
+  generateRoutes({ commit }) {
+    return new Promise((resolve, reject) => {
+      getMenu()
+        .then((response) => {
+          const { data } = response
+          var menu
+          menu = handlerMenus(data)
+          // 存在vueX中
+          commit('SET_ROUTES', menu)
+          console.log(JSON.stringify(menu))
+          resolve(menu)
+        })
+        .catch((error) => {
+          reject(error)
+        })
     })
   }
 }

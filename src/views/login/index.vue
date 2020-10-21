@@ -41,7 +41,8 @@
         </span>
       </el-form-item>
 
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">登录</el-button>
+      <el-checkbox v-model="loginForm.rememberMe" prop="rememberMe">记住我</el-checkbox>
+      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;margin-top:30px" @click.native.prevent="handleLogin">登录</el-button>
 
       <div class="tips">
         <span style="margin-right:20px;">用户名: 1234</span>
@@ -60,7 +61,7 @@ export default {
   data() {
     const validateUsername = (rule, value, callback) => {
       if (!validUsername(value)) {
-        callback(new Error('请输入正确的用户名'))
+        callback(new Error('用户名不能为空'))
       } else {
         callback()
       }
@@ -75,7 +76,8 @@ export default {
     return {
       loginForm: {
         username: 'admin',
-        password: '123'
+        password: '123',
+        rememberMe: true
       },
       loginRules: {
         username: [{ required: true, trigger: 'blur', validator: validateUsername }],
