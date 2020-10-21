@@ -1,4 +1,6 @@
-import { asyncRoutes, constantRoutes } from '@/router'
+import { constantRoutes } from '@/router'
+import { getMenus } from '@/api/menus'
+
 /**
  * 通过meta.data确认当前用户是否有权限
  * @param {*} roles
@@ -10,6 +12,32 @@ function hasPermission(roles, route) {
     return roles.some(role => route.meta.roles.includes(role))
   } else {
     return false
+  }
+}
+
+function handleRoutes(accessedRoutes) {
+  if (accessedRoutes.length > 0) {
+    accessedRoutes.forEach(function(item) {
+      item['component'] = getView(item.component)
+      if (item.children.length > 0) {
+        handleRoutes(item.children)
+      }
+    })
+  }
+  console.log(state.routes)
+  console.log(JSON.stringify(accessedRoutes))
+  return accessedRoutes
+}
+
+function getView(componentPath) {
+  if (componentPath === 'Layout') {
+    return resolve => {
+      require(['@/layout'], resolve)
+    }
+  } else {
+    return resolve => {
+      require(['@/views/' + componentPath], resolve)
+    }
   }
 }
 
@@ -40,17 +68,18 @@ const mutations = {
 }
 
 const actions = {
-  generateRoutes({ commit }, roles) {
-    return new Promise(resolve => {
-      let accessedRoutes
-      // 管理员可以访问所有
-      if (roles.includes('admin')) {
-        accessedRoutes = asyncRoutes || []
-      } else {
-        accessedRoutes = filterAsybcRoutes(asyncRoutes, roles)
-      }
-      commit('SET_ROUTES', accessedRoutes)
-      resolve(accessedRoutes)
+  generateRoutes({ commit }) {
+    return new Promise((resolve, reject) => {
+      getMenus().then(response => {
+        const { data } = response
+        var accessedRoutes = data
+        accessedRoutes = handleRoutes(accessedRoutes)
+        // 存在vueX中
+        commit('SET_ROUTES', accessedRoutes)
+        resolve(accessedRoutes)
+      }).catch(error => {
+        reject(error)
+      })
     })
   }
 }

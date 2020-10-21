@@ -33,10 +33,10 @@ router.beforeEach(async(to, from, next) => {
       } else {
         try {
           // 获取用户信息
-          const userInfo = await store.dispatch('user/getInfo')
-          console.log(userInfo)
+          await store.dispatch('user/getInfo')
+          // console.log(userInfo)
           // 根据角色生成可以访问的路由
-          const accessRoutes = await store.dispatch('permission/generateRoutes', userInfo.roles)
+          const accessRoutes = await store.dispatch('permission/generateRoutes')
           console.log(accessRoutes)
           router.addRoutes(accessRoutes)
           // hack方法 确保addRoutes已完成
