@@ -1,56 +1,27 @@
 import { constantRoutes } from '@/router'
-import { getMenus } from '@/api/menus'
+import { getMenu } from '@/api/menus'
 
-/**
- * 通过meta.data确认当前用户是否有权限
- * @param {*} roles
- * @param {*} route
- */
-function hasPermission(roles, route) {
-  if (route.meta && route.meta.roles) {
-    // 如果有一个元素满足条件，则立即返回true，没有满足条件的元素返回false
-    return roles.some(role => route.meta.roles.includes(role))
-  } else {
-    return false
-  }
-}
-
-function handleRoutes(accessedRoutes) {
-  if (accessedRoutes.length > 0) {
-    accessedRoutes.forEach(function(item) {
-      item['component'] = getView(item.component)
-      if (item.children.length > 0) {
-        handleRoutes(item.children)
+function handlerMenus(menus) {
+  return menus.filter((menus) => {
+    const component = menus.component
+    if (component) {
+      if (menus.component === 'Layout') {
+        menus.component = resolve => { require(['@/layout/index'], resolve) }
+      } else {
+        menus.component = view(menus.component)
       }
-    })
-  }
-  return accessedRoutes
-}
-
-function getView(componentPath) {
-  if (componentPath === 'Layout') {
-    return resolve => {
-      require(['@/layout'], resolve)
-    }
-  } else {
-    return resolve => {
-      require(['@/views/' + componentPath], resolve)
-    }
-  }
-}
-
-export function filterAsybcRoutes(routes, roles) {
-  const res = []
-  routes.forEach(route => {
-    const tmp = { ...route }
-    if (hasPermission(roles, tmp)) {
-      if (tmp.children) {
-        tmp.children = filterAsybcRoutes(tmp.children, roles)
+      if (menus.children && menus.children.length) {
+        menus.children = handlerMenus(menus.children)
       }
-      res.push(tmp)
+      return true
     }
   })
-  return res
+}
+
+function view(componentPath) {
+  return resolve => {
+    require(['@/views/' + componentPath], resolve)
+  }
 }
 
 const state = {
@@ -68,18 +39,18 @@ const mutations = {
 const actions = {
   generateRoutes({ commit }) {
     return new Promise((resolve, reject) => {
-      getMenus().then(response => {
-        const { data } = response
-        var accessedRoutes = data
-        accessedRoutes = handleRoutes(accessedRoutes)
-        // 不能放在静态路由下，否则在动态菜单获取的时候刷新后为404
-        accessedRoutes.push({ path: '*', redirect: '/error/404', hidden: true })
-        // 存在vueX中
-        commit('SET_ROUTES', accessedRoutes)
-        resolve(accessedRoutes)
-      }).catch(error => {
-        reject(error)
-      })
+      getMenu()
+        .then((response) => {
+          const { data } = response
+          var menu
+          menu = handlerMenus(data)
+          // 存在vueX中
+          commit('SET_ROUTES', menu)
+          resolve(menu)
+        })
+        .catch((error) => {
+          reject(error)
+        })
     })
   }
 }

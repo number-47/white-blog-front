@@ -13,7 +13,8 @@ const whiteList = ['/login'] // no redirect whitelist
  * to: Route：即将要进入的目标 路由对象
  * from: Route: 当前导航正要离开的路由
  */
-router.beforeEach(async(to, from, next) => {
+// eslint-disable-next-line
+router.beforeEach(async (to, from, next) => {
   // start progress bar
   NProgress.start()
 
@@ -27,16 +28,22 @@ router.beforeEach(async(to, from, next) => {
       next({ path: '/' })
       NProgress.done()
     } else {
-      const hasRoles = store.getters.roles && store.getters.roles.length > 0
-      if (hasRoles) {
+      // 如果有用户信息就next()
+      const hasGetUserInfo = store.getters.name
+      if (hasGetUserInfo) {
         next()
       } else {
         try {
           // 获取用户信息
           await store.dispatch('user/getInfo')
-          // console.log(userInfo)
-          // 根据角色生成可以访问的路由
+          // 生成可以访问的路由
           const accessRoutes = await store.dispatch('permission/generateRoutes')
+          console.log(accessRoutes)
+          console.log(router)
+          // accessRoutes.forEach(e => {
+          //   router.options.routes.push(e)
+          // })
+          console.log(to)
           router.addRoutes(accessRoutes)
           // hack方法 确保addRoutes已完成
           next({ ...to, replace: true })

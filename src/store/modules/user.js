@@ -1,6 +1,7 @@
 import { login, logout, getInfo } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
+import db from '@/utils/localstorage'
 
 const getDefaultState = () => {
   return {
@@ -34,10 +35,12 @@ const mutations = {
 const actions = {
   // 用户登录
   login({ commit }, userInfo) {
-    const { username, password } = userInfo
+    const { username, password, rememberMe } = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+      login({ username: username.trim(), password: password, rememberMe: rememberMe }).then(response => {
         const { data } = response
+        // 得到token存到localStorage
+        db.save('token', data.token)
         // 存在vueX中
         commit('SET_TOKEN', data.token)
         // 存在cookie中

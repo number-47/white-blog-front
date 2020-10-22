@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-export function getMenus() {
+export function getMenu() {
   return request({
     url: '/adminMenu/menu',
     method: 'get'
