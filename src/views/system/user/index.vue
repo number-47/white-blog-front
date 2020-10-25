@@ -213,6 +213,12 @@ export default {
     },
     handleFilter() {
       this.listQuery.page = 1
+      if (this.listQuery.username === '') {
+        this.listQuery.username = undefined
+      }
+      if (this.listQuery.enabled === '') {
+        this.listQuery.enabled = undefined
+      }
       this.getList()
     },
     handleModifyStatus(row, status) {

@@ -27,7 +27,7 @@ export function userList(userDto) {
   return request({
     url: '/user/list',
     method: 'get',
-    params: { userDto }
+    params: userDto
   })
 }
 
