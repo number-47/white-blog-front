@@ -46,3 +46,18 @@ export function createUser(data) {
     data
   })
 }
+
+export function deleteUser(id) {
+  return request({
+    url: '/user/delete/' + id,
+    method: 'delete'
+  })
+}
+
+export function refreshToken(data) {
+  return request({
+    url: '/user/refreshToken',
+    method: 'post',
+    data: data
+  })
+}

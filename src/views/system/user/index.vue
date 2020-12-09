@@ -53,7 +53,7 @@
       </el-table-column>
       <el-table-column label="状态" class-name="status-col" width="90px">
         <template slot-scope="{row}">
-          <el-tag :key="row.enabled" :type="row.enabled==true?'success':'info'">
+          <el-tag :key="row.enabled" :type="row.enabled===true?'success':'info'">
             {{ row.enabled == true ? '启用':'禁用' }}
           </el-tag>
         </template>
@@ -71,7 +71,7 @@
           <el-button v-if="row.enabled==true" size="mini" type="info" @click="handleModifyStatus(row,false)">
             禁用
           </el-button>
-          <el-button v-if="row.enabled==false" size="mini" type="success" @click="handleModifyStatus(row,false)">
+          <el-button v-if="row.enabled==false" size="mini" type="success" @click="handleModifyStatus(row,true)">
             启用
           </el-button>
           <el-button v-if="row.status!='deleted'" size="mini" type="danger" @click="handleDelete(row,$index)">
@@ -84,8 +84,8 @@
     <pagination v-show="total>0" :total="total" :page.sync="listQuery.page" :limit.sync="listQuery.limit" @pagination="getList" />
 
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
-      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;">
-        <el-form-item label="状态" prop="type">
+      <el-form ref="dataForm" status-icon :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;">
+        <el-form-item label="状态" prop="enabled">
           <el-select v-model="temp.enabled" class="filter-item" placeholder="请选择">
             <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name" :value="item.key" />
           </el-select>
@@ -99,7 +99,7 @@
         <el-form-item label="昵称" prop="name">
           <el-input v-model="temp.name" />
         </el-form-item>
-        <el-form-item label="邮件" prop="email">
+        <el-form-item label="邮件" prop="checkEmail">
           <el-input v-model="temp.email" />
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
@@ -129,7 +129,7 @@
 </template>
 
 <script>
-import { userList, updateUser, createUser } from '@/api/user'
+import { userList, updateUser, createUser, deleteUser } from '@/api/user'
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination' // secondary package based on el-pagination
@@ -155,6 +155,15 @@ export default {
     }
   },
   data() {
+    var checkEmail = (rules, value, callback) => {
+      if (!value) {
+        callback()
+      }
+      var reg = new RegExp('^[a-z0-9A-Z]+[-|a-z0-9A-Z._]+@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-z]{2,}$')
+      if (!reg.test(value)) {
+        return callback(new Error('邮箱格式不正确'))
+      }
+    }
     return {
       tableKey: 0,
       list: null,
@@ -168,8 +177,6 @@ export default {
       },
       importanceOptions: [1, 2, 3],
       calendarTypeOptions,
-      sortOptions: [{ label: 'ID Ascending', key: '+id' }, { label: 'ID Descending', key: '-id' }],
-      statusOptions: ['enabled', 'disabled', 'deleted'],
       temp: {
         id: undefined,
         username: '',
@@ -178,7 +185,7 @@ export default {
         email: '',
         enabled: true,
         createTime: '',
-        updateTime: new Date()
+        checkEmail: ''
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -190,7 +197,12 @@ export default {
       pvData: [],
       rules: {
         enabled: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
-        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }]
+        username: [{ required: true, message: '请输入用户名', trigger: 'blur' },
+          { min: 2, max: 15, message: '长度在2到15个字符', trigger: 'blur' }
+        ],
+        name: [{ min: 1, max: 15, message: '长度在1到15个字符', trigger: 'blur' }],
+        phone: [{ min: 11, max: 11, message: '手机号不正确', trigger: 'blur' }],
+        checkEmail: [{ validator: checkEmail, trigger: 'blur' }]
       },
       downloadLoading: false
     }
@@ -213,14 +225,23 @@ export default {
     },
     handleFilter() {
       this.listQuery.page = 1
+      if (this.listQuery.username === '') {
+        this.listQuery.username = undefined
+      }
       this.getList()
     },
     handleModifyStatus(row, status) {
-      this.$message({
-        message: '操作Success',
-        type: 'success'
-      })
       row.enabled = status
+      console.log(row)
+      updateUser(row).then(() => {
+        this.dialogFormVisible = false
+        this.$notify({
+          title: 'Success',
+          message: '操作成功',
+          type: 'success',
+          duration: 2000
+        })
+      })
     },
     resetTemp() {
       this.temp = {
@@ -230,8 +251,7 @@ export default {
         phone: '',
         email: '',
         enabled: true,
-        createTime: '',
-        updateTime: parseTime(new Date(), '{y}-{m}-{d} {h}:{i}:{s}')
+        createTime: ''
       }
     },
     handleCreate() {
@@ -273,8 +293,6 @@ export default {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
           const tempData = Object.assign({}, this.temp)
-          tempData.updateTime = +new Date(tempData.timestamp) // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
-          console.log(JSON.stringify(tempData))
           updateUser(tempData).then(() => {
             const index = this.list.findIndex(v => v.id === this.temp.id)
             this.list.splice(index, 1, this.temp)
@@ -290,13 +308,29 @@ export default {
       })
     },
     handleDelete(row, index) {
-      this.$notify({
-        title: 'Success',
-        message: 'Delete Successfully',
-        type: 'success',
-        duration: 2000
+      this.$confirm('此操作将永久删除用户，是否继续？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        deleteUser(row.id).then(() => {
+          this.$notify({
+            title: 'Success',
+            message: '删除成功',
+            type: 'success',
+            duration: 2000
+          })
+        })
+        const index = this.list.findIndex(v => v.id === row.id)
+        this.list.splice(index, 1)
+      }).catch(() => {
+        this.$notify({
+          title: 'Info',
+          message: '已取消删除',
+          type: 'info',
+          duration: 2000
+        })
       })
-      this.list.splice(index, 1)
     },
     handleDownload() {
       this.downloadLoading = true

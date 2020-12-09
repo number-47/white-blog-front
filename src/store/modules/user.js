@@ -1,4 +1,4 @@
-import { login, logout, getInfo } from '@/api/user'
+import { login, logout, getInfo, refreshToken } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
 import db from '@/utils/localstorage'
@@ -6,6 +6,9 @@ import db from '@/utils/localstorage'
 const getDefaultState = () => {
   return {
     token: getToken(),
+    expireTime: db.get('expireTime'),
+    refreshToken: db.get('refreshToken'),
+    refreshExpireTime: db.get('refreshExpireTime'),
     name: '',
     avatar: '',
     roles: []
@@ -20,6 +23,15 @@ const mutations = {
   },
   SET_TOKEN: (state, token) => {
     state.token = token
+  },
+  SET_EXPIRE_TIME: (state, expireTime) => {
+    state.expireTime = expireTime
+  },
+  SET_REFRESH_TOKEN: (state, refreshToken) => {
+    state.refreshToken = refreshToken
+  },
+  SET_REFRESH_EXPIRE_TIME: (state, refreshExpireTime) => {
+    state.refreshExpireTime = refreshExpireTime
   },
   SET_NAME: (state, name) => {
     state.name = name
@@ -41,8 +53,15 @@ const actions = {
         const { data } = response
         // 得到token存到localStorage
         db.save('token', data.token)
+        db.save('refreshToken', data.refreshToken)
+        db.save('expireTime', data.expireTime)
+        db.save('refreshExpireTime', data.refreshExpireTime)
+        db.save('userName', username)
         // 存在vueX中
         commit('SET_TOKEN', data.token)
+        commit('SET_EXPIRE_TIME', data.expireTime)
+        commit('SET_REFRESH_TOKEN', data.refreshToken)
+        commit('SET_REFRESH_EXPIRE_TIME', data.refreshExpireTime)
         // 存在cookie中
         setToken(data.token)
         resolve()
@@ -95,6 +114,30 @@ const actions = {
       removeToken() // must remove  token  first
       commit('RESET_STATE')
       resolve()
+    })
+  },
+  /**
+   * 刷新token
+   */
+  async refreshToken({ commit }) {
+    const data = {
+      'userName': db.get('userName'),
+      'refreshToken': state.refreshToken
+    }
+    return await new Promise((resolve, reject) => {
+      refreshToken(data).then((response) => {
+        const { data } = response
+        console.log('refresh' + data)
+        // 得到token存到localStorage
+        db.save('token', data.token)
+        db.save('expireTime', data.expireTime)
+        // 存在vueX中
+        commit('SET_TOKEN', data.token)
+        commit('SET_EXPIRE_TIME', data.expireTime)
+        // resolve()
+      }).catch(error => {
+        reject(error)
+      })
     })
   }
 }

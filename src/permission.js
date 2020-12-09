@@ -38,12 +38,6 @@ router.beforeEach(async (to, from, next) => {
           await store.dispatch('user/getInfo')
           // 生成可以访问的路由
           const accessRoutes = await store.dispatch('permission/generateRoutes')
-          console.log(accessRoutes)
-          console.log(router)
-          // accessRoutes.forEach(e => {
-          //   router.options.routes.push(e)
-          // })
-          console.log(to)
           router.addRoutes(accessRoutes)
           // hack方法 确保addRoutes已完成
           next({ ...to, replace: true })
