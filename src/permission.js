@@ -22,7 +22,8 @@ router.beforeEach(async (to, from, next) => {
   document.title = getPageTitle(to.meta.title)
   // determine whether the user has logged in
   const hasToken = getToken()
-  if (hasToken) {
+  console.log(hasToken)
+  if (JSON.stringify(hasToken) !== '{}' && hasToken) {
     if (to.path === '/login') {
       // if is logged in, redirect to the home page
       next({ path: '/' })
@@ -30,7 +31,9 @@ router.beforeEach(async (to, from, next) => {
     } else {
       // 如果有用户信息就next()
       const hasGetUserInfo = store.getters.name
-      if (hasGetUserInfo) {
+      console.log(hasGetUserInfo)
+      console.log(hasGetUserInfo !== '')
+      if (hasGetUserInfo !== '') {
         next()
       } else {
         try {

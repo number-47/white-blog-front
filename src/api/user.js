@@ -53,11 +53,3 @@ export function deleteUser(id) {
     method: 'delete'
   })
 }
-
-export function refreshToken(data) {
-  return request({
-    url: '/user/refreshToken',
-    method: 'post',
-    data: data
-  })
-}

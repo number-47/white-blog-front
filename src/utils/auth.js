@@ -1,15 +1,21 @@
-import Cookies from 'js-cookie'
-
-const TokenKey = 'Authorization'
+import db from '@/utils/localstorage'
 
 export function getToken() {
-  return Cookies.get(TokenKey)
+  return db.get('token')
 }
 
-export function setToken(token) {
-  return Cookies.set(TokenKey, token)
+export function getRefreshToken() {
+  return db.get('refreshToken')
+}
+
+export function getExpireTime() {
+  return db.get('expireTime')
+}
+
+export function getUserName() {
+  return db.get('userName')
 }
 
 export function removeToken() {
-  return Cookies.remove(TokenKey)
+  return db.clear()
 }

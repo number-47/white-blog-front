@@ -1,5 +1,5 @@
-import { login, logout, getInfo, refreshToken } from '@/api/user'
-import { getToken, setToken, removeToken } from '@/utils/auth'
+import { login, logout, getInfo, getRefreshToken } from '@/api/user'
+import { getToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
 import db from '@/utils/localstorage'
 
@@ -51,6 +51,7 @@ const actions = {
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password, rememberMe: rememberMe }).then(response => {
         const { data } = response
+        console.log(JSON.stringify(data))
         // 得到token存到localStorage
         db.save('token', data.token)
         db.save('refreshToken', data.refreshToken)
@@ -62,8 +63,6 @@ const actions = {
         commit('SET_EXPIRE_TIME', data.expireTime)
         commit('SET_REFRESH_TOKEN', data.refreshToken)
         commit('SET_REFRESH_EXPIRE_TIME', data.refreshExpireTime)
-        // 存在cookie中
-        setToken(data.token)
         resolve()
       }).catch(error => {
         reject(error)
@@ -76,13 +75,10 @@ const actions = {
     return new Promise((resolve, reject) => {
       getInfo(state.token).then(response => {
         const { data } = response
-
         if (!data) {
           return reject('Verification failed, please Login again.')
         }
-
         const { name, avatar, roles } = data
-
         commit('SET_NAME', name)
         commit('SET_AVATAR', avatar)
         commit('SET_ROLES', roles)
@@ -114,30 +110,6 @@ const actions = {
       removeToken() // must remove  token  first
       commit('RESET_STATE')
       resolve()
-    })
-  },
-  /**
-   * 刷新token
-   */
-  async refreshToken({ commit }) {
-    const data = {
-      'userName': db.get('userName'),
-      'refreshToken': state.refreshToken
-    }
-    return await new Promise((resolve, reject) => {
-      refreshToken(data).then((response) => {
-        const { data } = response
-        console.log('refresh' + data)
-        // 得到token存到localStorage
-        db.save('token', data.token)
-        db.save('expireTime', data.expireTime)
-        // 存在vueX中
-        commit('SET_TOKEN', data.token)
-        commit('SET_EXPIRE_TIME', data.expireTime)
-        // resolve()
-      }).catch(error => {
-        reject(error)
-      })
     })
   }
 }

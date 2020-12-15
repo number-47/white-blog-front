@@ -1,5 +1,6 @@
 import { constantRoutes } from '@/router'
 import { getMenu } from '@/api/menus'
+import db from '@/utils/localstorage'
 
 function handlerMenus(menus) {
   return menus.filter((menus) => {
@@ -44,6 +45,7 @@ const actions = {
           const { data } = response
           var menu
           menu = handlerMenus(data)
+          db.save('menu', menu)
           // 存在vueX中
           commit('SET_ROUTES', menu)
           resolve(menu)
