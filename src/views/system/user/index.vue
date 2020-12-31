@@ -1,17 +1,17 @@
 <template>
   <div class="app-container">
     <div class="filter-container">
-      <el-input v-model="listQuery.username" placeholder="用户名" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
-      <el-select v-model="listQuery.enabled" placeholder="状态" clearable class="filter-item" style="width: 130px">
+      <el-input v-model="listQuery.username" placeholder="用户名" style="width: 200px;margin-right:10px" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-select v-model="listQuery.enabled" placeholder="状态" clearable class="filter-item" style="width: 130px;margin-right:10px">
         <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name" :value="item.key" />
       </el-select>
       <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">
         搜索
       </el-button>
-      <el-button class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
+      <el-button v-show="distributeUserFormVisible===false" v-has-permission="['user:add']" class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
         新增
       </el-button>
-      <el-button v-waves :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">
+      <el-button v-show="distributeUserFormVisible===false" v-has-permission="['user:export']" v-waves :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">
         导出
       </el-button>
     </div>
@@ -20,23 +20,27 @@
       :key="tableKey"
       v-loading="listLoading"
       :data="list"
-      border
       :fit="true"
       highlight-current-row
-      height="450"
+      height="350"
       style="width: 100%;"
+      @selection-change="handleSelectionChange"
     >
-      <el-table-column v-if="false" label="id" prop="id" width="70px" align="center">
+      <el-table-column v-if="false" label="id" prop="id" align="center">
         <template slot-scope="{row}">
           <span>{{ row.id }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="用户名" prop="username" width="110px" align="center">
+      <el-table-column
+        type="selection"
+        width="55"
+      />
+      <el-table-column label="用户名" prop="username" width="100px" align="center">
         <template slot-scope="{row}">
           <span>{{ row.username }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="昵称" prop="name" width="110px" align="center">
+      <el-table-column label="昵称" prop="name" width="100px" align="center">
         <template slot-scope="{row}">
           <span>{{ row.name }}</span>
         </template>
@@ -46,7 +50,7 @@
           <span>{{ row.phone }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="邮件" width="180px" align="center" min-width="150px">
+      <el-table-column label="邮件" width="170px" align="center" min-width="140px">
         <template slot-scope="{row}">
           <span>{{ row.email }}</span>
         </template>
@@ -58,23 +62,23 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="创建日期" width="180px" align="center">
+      <el-table-column label="创建日期" width="150px" align="center">
         <template slot-scope="{row}">
           <span>{{ row.createTime | parseTime('{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" min-width="230" class-name="small-padding fixed-width">
+      <el-table-column v-if="distributeUserFormVisible===false" label="操作" align="center" min-width="230" class-name="small-padding fixed-width">
         <template slot-scope="{row,$index}">
-          <el-button type="primary" size="mini" @click="handleUpdate(row)">
+          <el-button v-has-permission="['user:edit']" type="primary" size="mini" @click="handleUpdate(row)">
             编辑
           </el-button>
-          <el-button v-if="row.enabled==true" size="mini" type="info" @click="handleModifyStatus(row,false)">
+          <el-button v-if="row.enabled==true" v-has-permission="['user:update']" size="mini" type="info" @click="handleModifyStatus(row,false)">
             禁用
           </el-button>
-          <el-button v-if="row.enabled==false" size="mini" type="success" @click="handleModifyStatus(row,true)">
+          <el-button v-if="row.enabled==false" v-has-permission="['user:update']" size="mini" type="success" @click="handleModifyStatus(row,true)">
             启用
           </el-button>
-          <el-button v-if="row.status!='deleted'" size="mini" type="danger" @click="handleDelete(row,$index)">
+          <el-button v-if="row.status!='deleted'" v-has-permission="['user:delete']" size="mini" type="danger" @click="handleDelete(row,$index)">
             删除
           </el-button>
         </template>
@@ -95,6 +99,18 @@
         </el-form-item>
         <el-form-item label="用户名" prop="username">
           <el-input v-model="temp.username" />
+        </el-form-item>
+        <el-form-item label="角色" prop="roles">
+          <treeselect
+            v-model="temp.roles"
+            style="width: 320px"
+            :flat="true"
+            :sort-value-by="sortValueBy"
+            :default-expand-level="1"
+            :multiple="true"
+            :options="roles"
+            placeholder="选择角色..."
+          />
         </el-form-item>
         <el-form-item label="昵称" prop="name">
           <el-input v-model="temp.name" />
@@ -130,9 +146,12 @@
 
 <script>
 import { userList, updateUser, createUser, deleteUser } from '@/api/user'
+import { getAllRoleWithoutPage } from '@/api/roles'
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination' // secondary package based on el-pagination
+import Treeselect from '@riophae/vue-treeselect'
+import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 
 const calendarTypeOptions = [
   { key: false, display_name: '禁用' },
@@ -147,11 +166,19 @@ const calendarTypeKeyValue = calendarTypeOptions.reduce((acc, cur) => {
 
 export default {
   name: 'User',
-  components: { Pagination },
+  components: { Pagination, Treeselect },
   directives: { waves },
   filters: {
     typeFilter(type) {
       return calendarTypeKeyValue[type]
+    }
+  },
+  props: {
+    distributeUserFormVisible: {
+      type: Boolean,
+      default: () => {
+        return false
+      }
     }
   },
   data() {
@@ -165,6 +192,9 @@ export default {
       }
     }
     return {
+      sortValueBy: 'ORDER_SELECTED',
+      users: null,
+      roles: [],
       tableKey: 0,
       list: null,
       total: 0,
@@ -185,7 +215,8 @@ export default {
         email: '',
         enabled: true,
         createTime: '',
-        checkEmail: ''
+        checkEmail: '',
+        roles: null
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -209,8 +240,14 @@ export default {
   },
   created() {
     this.getList()
+    this.getAllroles()
   },
   methods: {
+    getAllroles() {
+      getAllRoleWithoutPage().then(response => {
+        this.roles = response.data
+      })
+    },
     getList() {
       this.listLoading = true
       userList(this.listQuery).then(response => {
@@ -235,7 +272,6 @@ export default {
     },
     handleModifyStatus(row, status) {
       row.enabled = status
-      console.log(row)
       updateUser(row).then(() => {
         this.dialogFormVisible = false
         this.$notify({
@@ -358,7 +394,26 @@ export default {
           return v[j]
         }
       }))
+    },
+    handleSelectionChange(val) {
+      this.users = val
+      this.$emit('selectUsers', this.users)
     }
   }
 }
 </script>
+<style>
+.el-table__body-wrapper {
+    height: 200px; /* 滚动条整体高 必须项 */
+    border-right: none;
+    overflow-y: scroll;/* overflow-y为了不出现水平滚动条*/
+}
+.el-table__body-wrapper::-webkit-scrollbar {
+    width: 5px;/* 滚动条的宽高 必须项 */
+    height: 5px;
+}
+ .el-table__body-wrapper::-webkit-scrollbar-thumb {
+    background-color: #bfcbd9;/* 滚动条的宽 */
+    border-radius: 3px;
+}
+</style>

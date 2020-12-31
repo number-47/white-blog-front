@@ -1,4 +1,4 @@
-import { login, logout, getInfo, getRefreshToken } from '@/api/user'
+import { login, logout, getInfo } from '@/api/user'
 import { getToken, removeToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
 import db from '@/utils/localstorage'
@@ -11,7 +11,8 @@ const getDefaultState = () => {
     refreshExpireTime: db.get('refreshExpireTime'),
     name: '',
     avatar: '',
-    roles: []
+    roles: [],
+    permissionDirects: []
   }
 }
 
@@ -41,6 +42,12 @@ const mutations = {
   },
   SET_ROLES: (state, roles) => {
     state.roles = roles
+  },
+  SET_USER: (state, user) => {
+    state.user = user
+  },
+  SET_PERMISSIONDIRECTS: (state, permissionDirects) => {
+    state.permissionDirects = permissionDirects
   }
 }
 
@@ -51,7 +58,6 @@ const actions = {
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password, rememberMe: rememberMe }).then(response => {
         const { data } = response
-        console.log(JSON.stringify(data))
         // 得到token存到localStorage
         db.save('token', data.token)
         db.save('refreshToken', data.refreshToken)
@@ -78,10 +84,13 @@ const actions = {
         if (!data) {
           return reject('Verification failed, please Login again.')
         }
-        const { name, avatar, roles } = data
+        const { name, avatar, roles, permissionDirects } = data
         commit('SET_NAME', name)
         commit('SET_AVATAR', avatar)
         commit('SET_ROLES', roles)
+        commit('SET_USER', response.data)
+        commit('SET_PERMISSIONDIRECTS', permissionDirects)
+        db.save('user', response.data)
         resolve(data)
         return data
       }).catch(error => {

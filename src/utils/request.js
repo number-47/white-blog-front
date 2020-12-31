@@ -1,6 +1,6 @@
 import axios from 'axios'
-import { Message } from 'element-ui'
-import { authorizationValue } from '@/settings'
+import { Message, MessageBox } from 'element-ui'
+// import { authorizationValue } from '@/settings'
 import store from '@/store'
 import { getToken, getRefreshToken, getExpireTime } from '@/utils/auth'
 import db from '@/utils/localstorage'
@@ -11,7 +11,7 @@ import 'nprogress/nprogress.css'
 const requestTimeOut = 10 * 1000
 const success = 200
 // 更换令牌的时间区间
-const checkRegion =  1000
+const checkRegion = 1000
 // 提示信息显示时长
 const messageDuration = 5 * 1000
 
@@ -82,12 +82,63 @@ service.interceptors.response.use(
 
   response => {
     const res = response.data
-    return res
+    if (res.code !== 20000) {
+      Message({
+        message: res.message || 'Error',
+        type: 'error',
+        duration: 5 * 1000
+      })
+
+      // 50008: Illegal token; 50012: Other clients logged in; 50014: Token expired;
+      if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
+        // to re-login
+        MessageBox.confirm('你已经退出登录，你可以取消，留在当前页面，或者重新登录', '确认退出', {
+          confirmButtonText: '重新登录',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          store.dispatch('user/resetToken').then(() => {
+            location.reload()
+          })
+        })
+      }
+      return Promise.reject(new Error(res.message || 'Error'))
+    } else {
+      return res
+    }
   },
   error => {
     if (error.response) {
-      const errorMessage = error.response.data === null ? '系统内部异常，请联系网站管理员' : error.response.data.message
-      switch (error.response.status) {
+      const errorMessage = error.response.data.message === null ? '系统内部异常，请联系网站管理员' : error.response.data.message
+      console.log(error.response.data.code)
+      switch (error.response.data.code) {
+        case 50008:
+          Message({
+            message: '账户已过期，请重新登录',
+            type: 'error',
+            duration: messageDuration
+          })
+          store.dispatch('user/resetToken').then(() => {
+            location.reload()
+          })
+          break
+        case 50014:
+          Message({
+            message: '账户已过期，请重新登录',
+            type: 'error',
+            duration: messageDuration
+          })
+          store.dispatch('user/resetToken').then(() => {
+            location.reload()
+          })
+          break
+        case 50000:
+          Message({
+            message: '操作失败，请联系管理员',
+            type: 'error',
+            duration: messageDuration
+          })
+          break
         case 404:
           Message({
             message: '很抱歉，资源未找到',
@@ -120,52 +171,6 @@ service.interceptors.response.use(
     }
     return Promise.reject(error)
   }
-
-  // // if the custom code is not 20000, it is judged as an error.
-  // if (res.code !== 20000) {
-  //   Message({
-  //     message: res.message || 'Error',
-  //     type: 'error',
-  //     duration: 5 * 1000
-  //   })
-
-  //   // 50008: Illegal token; 50012: Other clients logged in; 50014: Token expired;
-  //   if (res.code === 50008) {
-  //     // to re-login
-  //     MessageBox.confirm('你已经退出登录，你可以取消，留在当前页面，或者重新登录', '确认退出', {
-  //       confirmButtonText: '重新登录',
-  //       cancelButtonText: '取消',
-  //       type: 'warning'
-  //     }).then(() => {
-  //       store.dispatch('user/resetToken').then(() => {
-  //         location.reload()
-  //       })
-  //     })
-  //   } else if (res.code === 50014) {
-  //     MessageBox.confirm('Token已过期，你可以取消，留在当前页面，或者重新登录', '确认退出', {
-  //       confirmButtonText: '重新登录',
-  //       cancelButtonText: '取消',
-  //       type: 'warning'
-  //     }).then(() => {
-  //       store.dispatch('user/resetToken').then(() => {
-  //         location.reload()
-  //       })
-  //     })
-  //   } else if (res.code === 50012) {
-  //     MessageBox.confirm('账户在其他地方登录，留在当前页面，或者重新登录', '确认退出', {
-  //       confirmButtonText: '重新登录',
-  //       cancelButtonText: '取消',
-  //       type: 'warning'
-  //     }).then(() => {
-  //       store.dispatch('user/resetToken').then(() => {
-  //         location.reload()
-  //       })
-  //     })
-  //   }
-  //   return Promise.reject(new Error(res.message || 'Error'))
-  // } else {
-  //   return res
-  // }
 )
 const request = {
   refresh(url, params) {
@@ -212,7 +217,8 @@ const request = {
       _params = ''
     } else {
       _params = '?'
-      for (const key in params) {
+      let key
+      for (key in params) {
         if (params.prototype.hasOwnProperty.call(params, key) && params[key] !== null) {
           _params += `${key}=${params[key]}&`
         }
@@ -226,7 +232,8 @@ const request = {
       _params = ''
     } else {
       _params = '?'
-      for (const key in params) {
+      let key
+      for (key in params) {
         if (params.prototype.hasOwnProperty.call(params, key) && params[key] !== null) {
           _params += `${key}=${params[key]}&`
         }
@@ -294,18 +301,20 @@ function tansParams(params) {
 async function queryRefreshToken(config, refreshToken) {
   const result = await request.refresh('user/refreshToken', {
     userName: db.get('userName'),
-    refresh_token: refreshToken
+    refreshToken: refreshToken
   })
-  if (result.status === success) {
-    saveData(result.data)
+  if (result.data.code === 20000) {
+    saveData(result.data.data)
     config.headers['Authorization'] = 'bearer ' + getToken()
   }
   return config
 }
 
 function saveData(data) {
-  store.commit('SET_TOKEN', data.token)
-  store.commit('SET_EXPIRE_TIME', data.expireTime)
+  db.save('token', data.token)
+  db.save('expireTime', data.expireTime)
+  // store.commit('SET_TOKEN', data.token)
+  // store.commit('SET_EXPIRE_TIME', data.expireTime)
   // const current = new Date()
   // const expireTime = current.setTime(current.getTime() + 1000 * data.expires_in)
   // store.commit('account/setExpireTime', expireTime)

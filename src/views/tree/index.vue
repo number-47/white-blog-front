@@ -4,7 +4,7 @@
 
     <el-tree
       ref="tree2"
-      :data="data2"
+      :data="menuList"
       :props="defaultProps"
       :filter-node-method="filterNode"
       class="filter-tree"
@@ -15,12 +15,16 @@
 </template>
 
 <script>
+import { getAllMenu } from '@/api/menus'
 export default {
   name: 'Tree',
   data() {
     return {
       filterText: '',
-      data2: [{
+      menuFilter: {
+        name: ''
+      },
+      menuList: [{
         id: 1,
         label: 'Level one 1',
         children: [{
@@ -66,8 +70,19 @@ export default {
       this.$refs.tree2.filter(val)
     }
   },
-
+  created() {
+    this.getAllMenus()
+  },
   methods: {
+    getAllMenus() {
+      getAllMenu(this.menuFilter).then(response => {
+        this.menuList = response.data
+        // Just to simulate the time of the request
+        setTimeout(() => {
+          this.menuList = false
+        }, 1.5 * 1000)
+      })
+    },
     filterNode(value, data) {
       if (!value) return true
       return data.label.indexOf(value) !== -1
