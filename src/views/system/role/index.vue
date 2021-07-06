@@ -54,10 +54,10 @@
         label="操作"
       >
         <template slot-scope="{row,$index}">
-          <el-button type="text" size="small" @click="handleClickView(row)">查看</el-button>
-          <el-button v-has-permission="['role:update']" type="text" size="small" @click="handleClickUpdate(row)">编辑</el-button>
-          <el-button v-has-permission="['role:update']" type="text" size="small" @click="handleDistributeUser(row)">分配用户</el-button>
-          <el-button v-has-permission="['role:delete']" type="text" size="small" @click="handleClickDelete(row,$index)">删除</el-button>
+          <el-button type="primary" size="mini" @click="handleClickView(row)">查看</el-button>
+          <el-button v-has-permission="['role:update']" type="primary" size="mini" @click="handleClickUpdate(row)">编辑</el-button>
+          <el-button v-has-permission="['role:update']" type="primary" size="mini" @click="handleDistributeUser(row)">分配用户</el-button>
+          <el-button v-has-permission="['role:delete']" size="mini" type="danger" @click="handleClickDelete(row,$index)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -66,16 +66,17 @@
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form ref="roleForm" :model="roleForm" :rules="rules" :inline="true" :label-position="labelPosition" label-width="90px" size="mini">
         <el-form-item label="角色名" prop="name">
-          <el-input v-model="roleForm.name" />
+          <el-input v-model="roleForm.name" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="角色ZH" prop="nameZh">
-          <el-input v-model="roleForm.nameZh" />
+          <el-input v-model="roleForm.nameZh" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="是否启用" prop="enabled" style="width: 164px;">
-          <el-switch v-model="roleForm.enabled" />
+          <el-switch v-model="roleForm.enabled" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="菜单权限" prop="menuIds" label-width="200">
           <treeselect
+            :disabled="disabled"
             v-model="roleForm.menuIds"
             style="width: 320px"
             :flat="true"
@@ -128,6 +129,7 @@ export default {
         create: '新增',
         view: '查看'
       },
+      disable: false,
       dialogFormVisible: false,
       distributeUserFormVisible: false,
       dialogStatus: '',
@@ -181,6 +183,7 @@ export default {
     }
   },
   created() {
+    this.disabled = false
     this.getAllroles()
     this.getAllMenus()
     // 注意：初始化defaultCheckedKeys时，在created里面
@@ -218,6 +221,7 @@ export default {
       }
     },
     handleCreate() {
+      this.disabled = false
       this.DefaultValueForm()
       this.dialogStatus = 'create'
       this.dialogFormVisible = true
@@ -274,11 +278,13 @@ export default {
       this.$refs.selectReport.blur()
     },
     handleClickView(row) {
+      this.disabled = true
       this.roleForm = row
       this.dialogStatus = 'view'
       this.dialogFormVisible = true
     },
     handleClickUpdate(row) {
+      this.disabled = false
       this.roleForm = Object.assign({}, row) // copy obj
       this.dialogStatus = 'update'
       this.dialogFormVisible = true

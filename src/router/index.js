@@ -47,11 +47,34 @@ export const constantRoutes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index'),
-        meta: { title: 'Dashboard', icon: 'dashboard' }
+        meta: { title: '主页', icon: 'dashboard' }
+      },
+      {
+        path: 'profile',
+        component: 'Profile',
+        redirect: 'noRedirect',
+        hidden: true,
+        component: () => import('@/views/profile/index'),
+        meta: { title: '个人中心', icon: 'nested' }
       }
     ]
   },
-
+  {
+    path: '/profile',
+    component: Layout,
+    redirect: 'noRedirect',
+    children: [
+      {
+        path: 'index',
+        component: 'Profile',
+        hidden: true,
+        component: () => import('@/views/profile/index'),
+        meta: { title: '个人中心', icon: 'nested' }
+      }
+    ]
+  },
+ 
+  /** 
   {
     path: '/example',
     component: Layout,
@@ -188,7 +211,7 @@ export const constantRoutes = [
         meta: { title: '404', noCache: true }
       }
     ]
-  }
+  }**/
 ]
 /**
  *  asyncRoutes 异步路由，通过meta里设置roles来实现动态的

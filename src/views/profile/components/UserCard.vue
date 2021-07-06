@@ -7,7 +7,6 @@
     <div class="user-profile">
       <div class="box-center">
         <pan-thumb :image="user.avatar" :height="'100px'" :width="'100px'" :hoverable="false">
-          <div>Hello</div>
           <div class="user-name text-center">{{ user.name }}</div>
           <div class="user-name text-center">{{ user.username }}</div>
         </pan-thumb>
@@ -19,15 +18,20 @@
 
     <div class="user-bio">
       <div class="user-education user-bio-section">
-        <div class="user-bio-section-header"><svg-icon icon-class="education" /><span>教育</span></div>
+        <div class="user-bio-section-header"><svg-icon icon-class="education" /><span>联系我</span></div>
         <div class="user-bio-section-body">
           <div class="text-muted">
-            北京师范大学珠海分校
+            邮件： {{ user.email }}
+          </div>
+        </div>
+        <div class="user-bio-section-body">
+          <div class="text-muted">
+             手机： {{ user.phone }}
           </div>
         </div>
       </div>
 
-      <div class="user-skills user-bio-section">
+      <!-- <div class="user-skills user-bio-section">
         <div class="user-bio-section-header"><svg-icon icon-class="skill" /><span>技能</span></div>
         <div class="user-bio-section-body">
           <div class="progress-item">
@@ -46,8 +50,8 @@
             <span>ESLint</span>
             <el-progress :percentage="100" status="success" />
           </div>
-        </div>
-      </div>
+        </div> 
+      </div>-->
     </div>
   </el-card>
 </template>
@@ -62,9 +66,11 @@ export default {
       type: Object,
       default: () => {
         return {
+          username:'',
           name: '',
           email: '',
           avatar: '',
+          phone: '',
           role: ''
         }
       }
@@ -81,6 +87,7 @@ export default {
 
 .text-muted {
   color: #777;
+  padding: 5px;
 }
 
 .user-profile {

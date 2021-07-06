@@ -69,7 +69,10 @@
       </el-table-column>
       <el-table-column v-if="distributeUserFormVisible===false" label="操作" align="center" min-width="230" class-name="small-padding fixed-width">
         <template slot-scope="{row,$index}">
-          <el-button v-has-permission="['user:edit']" type="primary" size="mini" @click="handleUpdate(row)">
+          <el-button type="primary" size="mini" @click="handleView(row)">
+            查看
+          </el-button>
+          <el-button v-has-permission="['user:update']" type="primary" size="mini" @click="handleUpdate(row)">
             编辑
           </el-button>
           <el-button v-if="row.enabled==true" v-has-permission="['user:update']" size="mini" type="info" @click="handleModifyStatus(row,false)">
@@ -90,18 +93,19 @@
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
       <el-form ref="dataForm" status-icon :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;">
         <el-form-item label="状态" prop="enabled">
-          <el-select v-model="temp.enabled" class="filter-item" placeholder="请选择">
+          <el-select v-model="temp.enabled" class="filter-item" placeholder="请选择" :disabled="disabled">
             <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name" :value="item.key" />
           </el-select>
         </el-form-item>
         <el-form-item v-if="false" label="id" prop="id">
-          <el-input v-model="temp.id" />
+          <el-input v-model="temp.id" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="temp.username" />
+          <el-input v-model="temp.username" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="角色" prop="roles">
           <treeselect
+            :disabled="disabled"
             v-model="temp.roles"
             style="width: 320px"
             :flat="true"
@@ -113,16 +117,16 @@
           />
         </el-form-item>
         <el-form-item label="昵称" prop="name">
-          <el-input v-model="temp.name" />
+          <el-input v-model="temp.name" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="邮件" prop="checkEmail">
-          <el-input v-model="temp.email" />
+          <el-input v-model="temp.email" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
-          <el-input v-model="temp.phone" />
+          <el-input v-model="temp.phone" :disabled="disabled"/>
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
+      <div v-show="dialogStatus!=='view'" slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">
           取消
         </el-button>
@@ -182,18 +186,10 @@ export default {
     }
   },
   data() {
-    var checkEmail = (rules, value, callback) => {
-      if (!value) {
-        callback()
-      }
-      var reg = new RegExp('^[a-z0-9A-Z]+[-|a-z0-9A-Z._]+@([a-z0-9A-Z]+(-[a-z0-9A-Z]+)?\\.)+[a-z]{2,}$')
-      if (!reg.test(value)) {
-        return callback(new Error('邮箱格式不正确'))
-      }
-    }
     return {
       sortValueBy: 'ORDER_SELECTED',
       users: null,
+      disabled: false,
       roles: [],
       tableKey: 0,
       list: null,
@@ -215,7 +211,6 @@ export default {
         email: '',
         enabled: true,
         createTime: '',
-        checkEmail: '',
         roles: null
       },
       dialogFormVisible: false,
@@ -233,7 +228,8 @@ export default {
         ],
         name: [{ min: 1, max: 15, message: '长度在1到15个字符', trigger: 'blur' }],
         phone: [{ min: 11, max: 11, message: '手机号不正确', trigger: 'blur' }],
-        checkEmail: [{ validator: checkEmail, trigger: 'blur' }]
+        email: [{ required: true, message: '请输入邮箱地址', trigger: 'blur' },
+          { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }]
       },
       downloadLoading: false
     }
@@ -294,6 +290,7 @@ export default {
       }
     },
     handleCreate() {
+      this.disabled = false
       this.resetTemp()
       this.dialogStatus = 'create'
       this.dialogFormVisible = true
@@ -306,20 +303,27 @@ export default {
         if (valid) {
           this.temp.id = parseInt(Math.random() * 100) + 1024 // mock a id
           this.temp.createTime = parseTime(new Date(), '{y}-{m}-{d} {h}:{i}:{s}')
-          createUser(this.temp).then(() => {
-            this.list.unshift(this.temp)
+          createUser(this.temp).then((res) => {
             this.dialogFormVisible = false
             this.$notify({
               title: 'Success',
-              message: '创建成功',
+              message: '创建成功,默认密码为' + res.data.defaultPassword,
               type: 'success',
               duration: 2000
             })
           })
         }
       })
+      this.getList()
+    },
+    handleView(row) {
+      this.disabled = true
+      this.temp = Object.assign({}, row) // copy obj
+      this.dialogStatus = 'view'
+      this.dialogFormVisible = true
     },
     handleUpdate(row) {
+      this.disabled = false
       this.temp = Object.assign({}, row) // copy obj
       this.temp.timestamp = new Date(this.temp.timestamp)
       this.dialogStatus = 'update'
@@ -345,6 +349,7 @@ export default {
           })
         }
       })
+      this.getList()
     },
     handleDelete(row, index) {
       this.$confirm('此操作将永久删除用户，是否继续？', '提示', {

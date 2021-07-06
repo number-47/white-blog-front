@@ -7,7 +7,7 @@
         class="search"
       />
       <el-button type="primary" icon="el-icon-search" @click="getAllMenus()">搜索</el-button>
-      <el-button type="primary" icon="el-icon-plus" @click="handleCreate()">新增</el-button>
+      <el-button type="primary" v-has-permission="['menu:add']" icon="el-icon-plus" @click="handleCreate()">新增</el-button>
     </div>
     <el-table
       v-loading="listLoading"
@@ -89,12 +89,12 @@
       <el-table-column
         fixed="right"
         label="操作"
-        width="150"
+        width="210"
       >
         <template slot-scope="{row,$index}">
-          <el-button type="text" size="small" @click="handleClickView(row)">查看</el-button>
-          <el-button v-has-permission="['menu:update']" type="text" size="small" @click="handleClickUpdate(row)">编辑</el-button>
-          <el-button v-has-permission="['menu:delete']" type="text" size="small" @click="handleClickDelete(row,$index)">删除</el-button>
+          <el-button type="primary" size="mini" @click="handleClickView(row)">查看</el-button>
+          <el-button v-has-permission="['menu:update']" type="primary" size="mini" @click="handleClickUpdate(row)">编辑</el-button>
+          <el-button v-has-permission="['menu:delete']" size="mini" type="danger" @click="handleClickDelete(row,$index)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -102,6 +102,7 @@
       <el-form ref="menuForm" :model="menuForm" :rules="rules" :label-position="labelPosition" label-width="90px">
         <el-form-item label="父菜单" prop="parentId">
           <treeselect
+            :disabled="disabled"
             v-model="menuForm.parentId"
             style="width: 501px"
             :flat="true"
@@ -113,34 +114,34 @@
           />
         </el-form-item>
         <el-form-item label="名称" prop="name">
-          <el-input v-model="menuForm.name" />
+          <el-input v-model="menuForm.name" :disabled="disabled"/>
         </el-form-item>
         <el-form-item v-if="menuForm.type === '0'" label="路径" prop="path">
-          <el-input v-model="menuForm.path" />
+          <el-input v-model="menuForm.path" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="类型" prop="type">
-          <el-radio-group v-model="menuForm.type">
+          <el-radio-group v-model="menuForm.type" :disabled="disabled">
             <el-radio label="0">菜单</el-radio>
             <el-radio label="1">按钮</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="权限指令" prop="permissionDirect">
-          <el-input v-model="menuForm.permissionDirect" />
+          <el-input v-model="menuForm.permissionDirect" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="标题" prop="title">
-          <el-input v-model="menuForm.title" />
+          <el-input v-model="menuForm.title" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="图标" prop="icon">
-          <el-input v-model="menuForm.icon" />
+          <el-input v-model="menuForm.icon" :disabled="disabled"/>
         </el-form-item>
         <el-form-item label="是否隐藏" prop="hidden">
-          <el-switch v-model="menuForm.hidden" />
+          <el-switch v-model="menuForm.hidden" :disabled="disabled"/>
         </el-form-item>
         <el-form-item v-if="menuForm.type === '0'" label="组件名" prop="component">
-          <el-input v-model="menuForm.component" />
+          <el-input v-model="menuForm.component" :disabled="disabled"/>
         </el-form-item>
         <el-form-item v-if="menuForm.type === '0'" label="重定向" prop="redirect">
-          <el-input v-model="menuForm.redirect" />
+          <el-input v-model="menuForm.redirect" :disabled="disabled"/>
         </el-form-item>
       </el-form>
       <div v-show="dialogStatus!=='view'" slot="footer" class="dialog-footer">
@@ -172,6 +173,7 @@ export default {
         create: '新增',
         view: '查看'
       },
+      disabled: false,
       listLoading: true,
       dialogFormVisible: false,
       dialogStatus: '',
@@ -242,7 +244,7 @@ export default {
         this.selectMenuList.unshift(this.parentMenu)
         setTimeout(() => {
           this.listLoading = false
-        }, 1.5 * 1000)
+        }, 1.0 * 1000)
       })
     },
     DefaultValueForm() {
@@ -262,6 +264,7 @@ export default {
       this.selectParentMenu = { id: '', name: '' }
     },
     handleCreate() {
+      this.disabled = false
       this.DefaultValueForm()
       this.dialogStatus = 'create'
       this.dialogFormVisible = true
@@ -319,11 +322,13 @@ export default {
       this.$refs.selectReport.blur()
     },
     handleClickView(row) {
+      this.disabled = true
       this.menuForm = row
       this.dialogStatus = 'view'
       this.dialogFormVisible = true
     },
     handleClickUpdate(row) {
+      this.disabled = false
       this.menuForm = Object.assign({}, row) // copy obj
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
