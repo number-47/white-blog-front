@@ -1,5 +1,5 @@
 <template>
-  <el-form ref="dataForm" status-icon :rules="rules" :model="temp"  label-position="left" label-width="80px">
+  <el-form ref="dataForm" status-icon :rules="rules" :model="temp" label-position="left" label-width="80px">
     <el-form-item label="用户名" prop="username">
       <el-input v-model.trim="temp.username" />
     </el-form-item>
@@ -27,7 +27,7 @@ export default {
       default: () => {
         return {
           id: '',
-          username:'',
+          username: '',
           name: '',
           email: '',
           avatar: '',
@@ -36,8 +36,8 @@ export default {
       }
     }
   },
-  data(){
-    return{
+  data() {
+    return {
       temp: {
         id: undefined,
         username: '',
@@ -52,11 +52,11 @@ export default {
         ],
         name: [{ required: true, min: 1, max: 15, message: '长度在1到15个字符', trigger: 'blur' }],
         phone: [{ min: 11, max: 11, message: '手机号不正确', trigger: 'blur' }],
-        email: [ { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }]
-      },
+        email: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }]
+      }
     }
   },
-   created() {
+  created() {
     this.temp = JSON.parse(JSON.stringify(this.user))
   },
   methods: {
@@ -74,7 +74,7 @@ export default {
           })
         }
       })
-      this.$emit('accountUpdate',this.temp)
+      this.$emit('accountUpdate', this.temp)
     }
   }
 }

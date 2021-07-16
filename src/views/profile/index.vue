@@ -14,10 +14,10 @@
                 <timeline />
               </el-tab-pane>
               <el-tab-pane label="修改密码" name="modifyPassword">
-                <modifyPassword :user="user"/>
+                <modifyPassword :user="user" />
               </el-tab-pane>
               <el-tab-pane label="账户信息" name="account">
-                <account :user="user" @accountUpdate='indexAccountUpdate'/>
+                <account :user="user" @accountUpdate="indexAccountUpdate" />
               </el-tab-pane>
             </el-tabs>
           </el-card>
@@ -65,7 +65,7 @@ export default {
         adminRole[j] = roles[j].nameZh
       }
       this.user = {
-        id: account.id,        
+        id: account.id,
         username: account.username,
         name: account.name,
         role: adminRole.join(' | '),
@@ -74,7 +74,7 @@ export default {
         phone: account.phone
       }
     },
-    indexAccountUpdate(data){
+    indexAccountUpdate(data) {
       this.user = JSON.parse(JSON.stringify(data))
     }
   }

@@ -11,6 +11,9 @@
       <el-button v-show="distributeUserFormVisible===false" v-has-permission="['user:add']" class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
         新增
       </el-button>
+      <el-button v-has-permission="['user:reset']" class="filter-item" style="margin-left: 10px;" type="danger" icon="el-icon-edit" @click="handleReset">
+        重置密码
+      </el-button>
       <el-button v-show="distributeUserFormVisible===false" v-has-permission="['user:export']" v-waves :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">
         导出
       </el-button>
@@ -55,14 +58,14 @@
           <span>{{ row.email }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" class-name="status-col" width="90px">
+      <el-table-column label="状态" class-name="status-col" width="70px">
         <template slot-scope="{row}">
           <el-tag :key="row.enabled" :type="row.enabled===true?'success':'info'">
             {{ row.enabled == true ? '启用':'禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="创建日期" width="150px" align="center">
+      <el-table-column label="创建日期" width="100px" align="center">
         <template slot-scope="{row}">
           <span>{{ row.createTime | parseTime('{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
@@ -81,6 +84,9 @@
           <el-button v-if="row.enabled==false" v-has-permission="['user:update']" size="mini" type="success" @click="handleModifyStatus(row,true)">
             启用
           </el-button>
+          <el-button v-has-permission="['user:reset']" size="mini" type="danger" @click="handleRestPass(row,$index)">
+            重置密码
+          </el-button>
           <el-button v-if="row.status!='deleted'" v-has-permission="['user:delete']" size="mini" type="danger" @click="handleDelete(row,$index)">
             删除
           </el-button>
@@ -98,15 +104,15 @@
           </el-select>
         </el-form-item>
         <el-form-item v-if="false" label="id" prop="id">
-          <el-input v-model="temp.id" :disabled="disabled"/>
+          <el-input v-model="temp.id" :disabled="disabled" />
         </el-form-item>
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="temp.username" :disabled="disabled"/>
+          <el-input v-model="temp.username" :disabled="disabled" />
         </el-form-item>
         <el-form-item label="角色" prop="roles">
           <treeselect
-            :disabled="disabled"
             v-model="temp.roles"
+            :disabled="disabled"
             style="width: 320px"
             :flat="true"
             :sort-value-by="sortValueBy"
@@ -117,13 +123,13 @@
           />
         </el-form-item>
         <el-form-item label="昵称" prop="name">
-          <el-input v-model="temp.name" :disabled="disabled"/>
+          <el-input v-model="temp.name" :disabled="disabled" />
         </el-form-item>
         <el-form-item label="邮件" prop="checkEmail">
-          <el-input v-model="temp.email" :disabled="disabled"/>
+          <el-input v-model="temp.email" :disabled="disabled" />
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
-          <el-input v-model="temp.phone" :disabled="disabled"/>
+          <el-input v-model="temp.phone" :disabled="disabled" />
         </el-form-item>
       </el-form>
       <div v-show="dialogStatus!=='view'" slot="footer" class="dialog-footer">
@@ -149,7 +155,7 @@
 </template>
 
 <script>
-import { userList, updateUser, createUser, deleteUser } from '@/api/user'
+import { userList, updateUser, createUser, deleteUser, resetPass } from '@/api/user'
 import { getAllRoleWithoutPage } from '@/api/roles'
 import waves from '@/directive/waves' // waves directive
 import { parseTime } from '@/utils'
@@ -189,6 +195,7 @@ export default {
     return {
       sortValueBy: 'ORDER_SELECTED',
       users: null,
+      resetUsers: [],
       disabled: false,
       roles: [],
       tableKey: 0,
@@ -305,6 +312,7 @@ export default {
           this.temp.createTime = parseTime(new Date(), '{y}-{m}-{d} {h}:{i}:{s}')
           createUser(this.temp).then((res) => {
             this.dialogFormVisible = false
+            this.getList()
             this.$notify({
               title: 'Success',
               message: '创建成功,默认密码为' + res.data.defaultPassword,
@@ -314,7 +322,6 @@ export default {
           })
         }
       })
-      this.getList()
     },
     handleView(row) {
       this.disabled = true
@@ -350,6 +357,54 @@ export default {
         }
       })
       this.getList()
+    },
+    handleRestPass(row, index) {
+      this.$confirm('此操作将重置用户密码，是否继续？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        const tempResetData = Object.assign([], this.resetUsers)
+        tempResetData.push(row)
+        resetPass(tempResetData).then(() => {
+          this.$notify({
+            title: 'Success',
+            message: '重置密码成功',
+            type: 'success',
+            duration: 2000
+          })
+        })
+      }).catch(() => {
+        this.$notify({
+          title: 'Info',
+          message: '已取消重置',
+          type: 'info',
+          duration: 2000
+        })
+      })
+    },
+    handleReset() {
+      this.$confirm('此操作将重置选择的用户密码，是否继续？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        resetPass(this.users).then(() => {
+          this.$notify({
+            title: 'Success',
+            message: '重置密码成功',
+            type: 'success',
+            duration: 2000
+          })
+        })
+      }).catch(() => {
+        this.$notify({
+          title: 'Info',
+          message: '已取消重置',
+          type: 'info',
+          duration: 2000
+        })
+      })
     },
     handleDelete(row, index) {
       this.$confirm('此操作将永久删除用户，是否继续？', '提示', {

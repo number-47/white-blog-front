@@ -53,3 +53,19 @@ export function deleteUser(id) {
     method: 'delete'
   })
 }
+
+export function modifyPass(data) {
+  return request({
+    url: '/user/modifyPass',
+    method: 'post',
+    data
+  })
+}
+
+export function resetPass(data) {
+  return request({
+    url: '/user/resetPass',
+    method: 'post',
+    data
+  })
+}

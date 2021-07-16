@@ -110,11 +110,10 @@ service.interceptors.response.use(
   error => {
     if (error.response) {
       const errorMessage = error.response.data.message === null ? '系统内部异常，请联系网站管理员' : error.response.data.message
-      console.log(error.response.data.code)
       switch (error.response.data.code) {
         case 50008:
           Message({
-            message: '账户已过期，请重新登录',
+            message: '账户密码错误，请重新登录',
             type: 'error',
             duration: messageDuration
           })
@@ -124,7 +123,7 @@ service.interceptors.response.use(
           break
         case 50014:
           Message({
-            message: '账户已过期，请重新登录',
+            message: '很抱歉，您暂无该操作权限',
             type: 'error',
             duration: messageDuration
           })
